@@ -361,12 +361,16 @@ addrsr={
 		let _bndr = "(\\b|\\,|\\s)", _apt = [];
 		//prevent saints names from being parsed as "suite" like "Ste-Marie" which is "Sainte-Marie"
 		//really not clever, works for now as a quick fix, will work on that later
-		var a=address.replace(/(ste)\-([a-z]{4,100})/i,'$1___SAINTE___$2');
-		var _c = [
+		let
+		a		= address.replace(/(ste)\-([a-z]{4,100})/i,'$1___SAINTE___$2'),
+		_c 		= [
 				//I dont know what it means but I had to manage for a customer
 				//RR 1 Comp 45 Site 19, 32 Willow Hill Est, Sundre, Alberta T0M 1X0, Canada
 			[XRegExp("^RR ([\\d]+) Comp([a-z]+|) ([\\d]+) Site ([\\d]+)" + _bndr, 'i'), ''],
 
+				//house number + apt + street
+				//129 B Mitchell Ct, Mitchell, ON N0K 1N0, Canada
+				[XRegExp("^(\\d+)\\s[A-DF-MP-RT-VX-Z](\\,|\\s)", 'i'), '$1 '],
 			//TODO: 10 1/2 6th ave,
 			//2875 boul. Laurier, D-3, Bureau 600, Québec, Quebec G1V 2M2, Canada
 
@@ -382,9 +386,6 @@ addrsr={
 			 	// 9390 Boulevard des Sciences #3A, Anjou, QC H1J 3C7, Canada
 			[XRegExp(" \\#(\s+|)(\\d)+(\-|)([\\p{L}]|)" + _bndr, 'i'), ''],
 
-				//house number + apt + street
-				//129 B Mitchell Ct, Mitchell, ON N0K 1N0, Canada
-			[XRegExp("^(\\d+)(\\s|)[A-DF-MP-RT-VX-Z](\\,|\\s)", 'i'), '$1 '],
 
 				//starting with subpremise
 				//#105 - 19 Everridge Square SW... also fits with or without spaces
@@ -394,7 +395,7 @@ addrsr={
 			if (_c[i][0].test(a)) {
 				if(options.verbose) console.info('subPremise match rule #'+i);
 				let _aptM = XRegExp.exec(a,_c[i][0]);
-				//console.log(_aptM)
+				if(options.verbose) console.log(_aptM)
 				_apt.push(_aptM[0].trim());
 				a = XRegExp.replace(a,_c[i][0], _c[i][1]).trim();
 			}
@@ -403,7 +404,6 @@ addrsr={
 			return a?true:false;
 		});
 		a=a.replace(/(ste)___SAINTE___([a-z]{4,100})/i,'$1-$2'); //restore "saint" name
-
 		//once subPremise has been replaced
 		let out=a.replace(/[\s]+\,/g,',').trim().replace(/[\,]+/g,',').trim().replace(/^\,/g,'').trim();
 		out = addrsr.cleanString(out).replace(/^(\d+)\, /,'$1 '),
@@ -428,8 +428,8 @@ addrsr={
 		}
 
 		return {
-			parsed: parsed,
-			stripped: out
+			parsed		: parsed,
+			stripped	: out
 		};
 	},
 	parseAddress: function(input,options) {
@@ -460,7 +460,7 @@ addrsr={
 		if(subP && subP.parsed){
 			result.subPremise=subP.parsed;
 			address=subP.stripped;
-			if(options.verbose) console.info('subPremise stripped:','"'+result.subPremise+'"',address);
+			if(options.verbose) console.info('subPremise:',subP,address);
 		}
 		// Assume comma, newline and tab is an intentional delimiter
 		var addressParts = address.split(/,|\t|\n/).map(Function.prototype.call, String.prototype.trim);
@@ -605,7 +605,7 @@ addrsr={
 		}
 
 		// Parse the street data
-		var streetString = "";
+		var streetString = "",_streetDirectionPosition=0;
 
 		if (cityString.length > 0) { // Check if anything is left of last section
 			addressParts[addressParts.length - 1] = cityString;
@@ -638,17 +638,18 @@ addrsr={
 					streetString = streetString.replace(re, "").trim(); // Carve off the line 2 data
 				}
 			}
-			if(options.verbose) console.info('streetString',streetString)
+			if(options.verbose) console.info('addressParts.length === 1: streetString',streetString)
 			//Assume street address comes first and the rest is secondary address
 			var 
 			reStreet = XRegExp('\.\*\\b(?:' +
 				Object.keys(usStreetTypes).join('|') + ')\\b\\.?' +
 				'( +(?:' + usStreetDirectionalString + ')\\b)?', 'i'),
 			reStreetFR = XRegExp('\.\*\\b(' +
-					Object.keys(usStreetTypes).join('|') + ')(\\.|)\\s([\\p{L}|_|\\-|\\\']+)(\\s|)' +
+					Object.keys(usStreetTypes).join('|') + ')(\\.|)\\s([\\p{L}|_|\\-|\\\'|\\s]+)(\\s|)' +
 					'(' + usStreetDirectionalString + '|)$', 'i'),
 			reAveLetter = XRegExp('\.\*\\b(av.?|ave.?|avenue)\.\*\\b\\p{L}\\b', 'i'),
-			reNoSuffix = XRegExp('\\b\\d+\\s[\\p{L}0-9_\\-\\.\\s\\\']+\\b', 'i');
+			reNoSuffix = XRegExp('\\b\\d+[a-z]?\\s[\\p{L}0-9_\\-\\.\\s\\\']+\\b', 'i');//,
+			//reNoSuffixApt = XRegExp('\\b[\\d]+[a-z|]\\s[\\p{L}0-9_\\-\\.\\s\\\']+\\b', 'i');
 			if (reAveLetter.test(streetString)) {
 				result.addressLine1 = XRegExp.exec(streetString, reAveLetter)[0];//streetString.match(reAveLetter)[0];
 				streetString = streetString.replace(reAveLetter, "").trim(); // Carve off the first address line
@@ -692,6 +693,8 @@ addrsr={
 					addln1=XRegExp.exec(streetString, reStreetFR);
 					if(options.verbose) console.info('streetString matches reStreetFR',addln1)
 					streetString = streetString.replace(reStreetFR, "").trim(); // Carve off the first address line
+
+					result.streetName = toTitleCase(addln1[3]);
 				}
 				else{
 					addln1=XRegExp.exec(streetString, reStreet);
@@ -732,6 +735,7 @@ addrsr={
 				if (result.addressLine1.match(re)) {
 					try{
 						result.streetDirection = streetParts.pop().toUpperCase();
+						_streetDirectionPosition=1;
 					}
 					catch(er){
 						console.warn(er.message,streetParts)
@@ -740,6 +744,7 @@ addrsr={
 				else if(streetParts[stnb_index] && usStreetDirectionalString.split('|').indexOf(streetParts[stnb_index].toUpperCase())!=-1){
 					result.streetDirection = streetParts.splice(stnb_index,1)+'';
 					result.streetDirection = result.streetDirection.toUpperCase();
+					_streetDirectionPosition=0;
 				}
 				if(options.verbose) console.info('addressLine1',result.addressLine1)
 
@@ -749,13 +754,14 @@ addrsr={
 					if(options.verbose) console.info('streetParts count >2',streetParts)
 					// Remove '.' if it follows streetSuffix
 					streetParts[streetParts.length - 1] = streetParts[streetParts.length - 1].replace(/\.$/, '');
-					result.streetSuffix = toTitleCase(usStreetTypes[streetParts[streetParts.length - 1].toLowerCase()]);
+					if(usStreetTypes[streetParts[streetParts.length - 1].toLowerCase()])
+						result.streetSuffix = toTitleCase(usStreetTypes[streetParts.pop().toLowerCase()]);
 					//streetParts.pop();
 				}
 				//was: "Assume street name is everything in the middle" but when you assume, you make an ass of u and me
 				// work fine except for something like: "1234 boul streetName W", that would give "boul"
 				let strnameindex=1;
-				if(options.verbose) console.info('streetParts against usStreetTypes',streetParts[1],Object.keys(usStreetTypes))
+				if(options.verbose) console.info('streetParts against usStreetTypes',streetParts[1])
 				if(streetParts[2] && Object.keys(usStreetTypes).indexOf(streetParts[2].toLowerCase().replace(/\.$/, ''))!=-1){
 					strnameindex=1;
 					if(!result.streetSuffix) result.streetSuffix = toTitleCase(streetParts[2]);
@@ -765,23 +771,21 @@ addrsr={
 					result.streetPrefix = toTitleCase(streetParts[1]);
 				}
 				result.streetName = streetParts[strnameindex]; // Assume street name is everything in the middle
-				for (var i = (strnameindex+1); i < streetParts.length - 1; i++) {
+				for (var i = (strnameindex+1); i <= streetParts.length - 1; i++) {
+					if(streetParts[i]==result.streetSuffix) continue;
 					result.streetName = result.streetName + " " + streetParts[i];
 				}
 				if(result.streetPrefix && !result.streetName) {
 					result.streetName=''+result.streetPrefix;
 					result.streetPrefix='';
 				}
-				result.streetName = toTitleCase(result.streetName);
-				result.addressLine1 = [result.streetNumber,(result.streetPrefix || ''), result.streetName].filter(function(a){return a?true:false;}).join(" ").replace(/\s+/g,' ');
-
-				if (result.hasOwnProperty('streetSuffix') && result.streetSuffix) {
-					result.addressLine1 = result.addressLine1 + ' ' + result.streetSuffix;
-				}
 				if (result.streetDirection) {
 					if(result.streetDirection.length>2) result.streetDirection=toTitleCase(result.streetDirection);
-					result.addressLine1 = result.addressLine1 + ' ' + result.streetDirection;
+					result.streetName = (_streetDirectionPosition===0?result.streetDirection+' ':'')+result.streetName;// +(_streetDirectionPosition===1?' ' + result.streetDirection:'') ;
 				}
+				result.streetName = toTitleCase(result.streetName);
+				result.addressLine1 = [result.streetNumber,(result.streetPrefix || ''), result.streetName,(result.streetSuffix || ''),(_streetDirectionPosition===1?' ' + result.streetDirection:'')].filter(function(a){return a?true:false;}).join(" ").replace(/\s+/g,' ');
+
 			} else if (result.poBox) {
 				result.addressLine1 = ''+result.poBox;
 				//streetString = streetString.replace(result.poBox, "").trim(); // Carve off the first address line
@@ -815,7 +819,12 @@ addrsr={
 		}
 		if(result.poBox) result.addressLine2=(result.addressLine2?result.addressLine2+', ':'')+result.poBox;
 		if(result.subPremise) {
-			result.addressLine2=(result.addressLine2?result.addressLine2+', ':'')+result.subPremise;
+			if(new RegExp("^"+result.streetNumber,'i').test(result.subPremise)){
+				result.subPremise=result.subPremise.replace(new RegExp("^"+result.streetNumber,'i'),'');
+				result.addressLine1=result.subPremise+'-'+result.addressLine1;
+			}
+			else
+				result.addressLine2=(result.addressLine2?result.addressLine2+', ':'')+result.subPremise;
 			result.subPremise=result.subPremise.replace('#','').trim();
 		}
 		
