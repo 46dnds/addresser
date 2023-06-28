@@ -518,6 +518,37 @@ describe('#parseAddress', function() {
         expect(result.zipCode).to.equal("70526");
         expect(result).to.not.have.property("zipCodePlusFour");
     });
+
+    it('should parse a street address with french "Avenue" style street name', function() {
+        var result = {};
+        try{ result=addresser.parseAddress("405 Avenue Ogilvy, Montreal, QC H3N 1M3, Canada");} catch(er){console.error(er);}
+        expect(result.streetNumber).to.equal("405");
+        expect(result.streetName).to.equal("Ogilvy");
+        expect(result.streetPrefix).to.equal("Avenue");
+        //expect(result).to.not.have.property('streetSuffix');
+        expect(result.addressLine1).to.equal("405 Avenue Ogilvy");
+        //expect(result).to.not.have.property('addressLine2');
+        expect(result.city).to.equal("Montreal");
+        expect(result.stateAbbreviation).to.equal("QC");
+        //expect(result.stateName).to.equal("Louisiana");
+        expect(result.zipCode).to.equal("H3N 1M3");
+        //expect(result).to.not.have.property("zipCodePlusFour");
+    });
+    it('should parse a street address with french "Av." style street name', function() {
+        var result = {};
+        try{ result=addresser.parseAddress("405 Av. Ogilvy, Montreal, QC H3N 1M3, Canada");} catch(er){console.error(er);}
+        expect(result.streetNumber).to.equal("405");
+        expect(result.streetName).to.equal("Ogilvy");
+        expect(result.streetPrefix).to.equal("Av.");
+        //expect(result).to.not.have.property('streetSuffix');
+        expect(result.addressLine1).to.equal("405 Av. Ogilvy");
+        //expect(result).to.not.have.property('addressLine2');
+        expect(result.city).to.equal("Montreal");
+        expect(result.stateAbbreviation).to.equal("QC");
+        //expect(result.stateName).to.equal("Louisiana");
+        expect(result.zipCode).to.equal("H3N 1M3");
+        //expect(result).to.not.have.property("zipCodePlusFour");
+    });
     it('should parse a street address with "Avenue N" style street name', function() {
         var result = {};
         try{ result=addresser.parseAddress("826 N Avenue N, Crowley, LA 70526");} catch(er){console.error(er);}

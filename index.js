@@ -92,56 +92,56 @@ canPostalCodeFirst = {
 },
 usZipCodesByState = require('./data/us-zipcodes-by-state.json'),
 usLine2Prefixes = {
-	'APARTMENT'    : 'APT',
-	'APPARTEMENT'	 : 'APT', // french for apt
-  'APP'          : 'APT', // french for apt
-	'APT'          : 'APT',
-	'BASEMENT'     : 'BSMT',
-	'BAY'		   : 'BAY',
-	'BSMT'         : 'BSMT',
-	'BLDG'         : 'BLDG',
-	'BUILDING'     : 'BLDG',
-	'BUREAU'       : 'BUR', //french for office
-	'BUR'       	: 'BUR', //french for office
-	'DEPARTMENT'   : 'DEPT',
-	'DEPT'         : 'DEPT',
-	'ETAGE'		     : 'FL', //french for Floor
-	'ÉTAGE'		     : 'FL',
-	'FL'           : 'FL',
-	'FLOOR'        : 'FL',
-	'FRNT'         : 'FRNT',
-	'FRONT'        : 'FRNT',
-	'HANGAR'       : 'HNGR',
-	'HNGR'         : 'HNGR',
-	'LBBY'         : 'LBBY',
-	'LOBBY'        : 'LBBY',
-	'LOCAL'        : 'RM', // french for room
-	'LOT'          : 'LOT',
-	'LOWER'        : 'LOWR',
-	'LOWR'         : 'LOWER',
-	'NUMERO'       : 'NO',
-	'NO'           : 'NO',
-	'OFC'          : 'OFC',
-	'OFFICE'       : 'OFC',
-	'PENTHOUSE'    : 'PH',
-	'PH'           : 'PH',
-	'PIER'         : 'PIER',
-	'REAR'         : 'REAR',
-	'RM'           : 'RM',
-	'ROOM'         : 'RM',
-	'SIDE'         : 'SIDE',
-	'SLIP'         : 'SLIP',
-	'SPACE'        : 'SPC',
-	'SPC'          : 'SPC',
-	'STE'          : 'STE',
-	'STOP'         : 'STOP',
-	'SUITE'        : 'STE',
-	'TRAILER'      : 'TRLR',
-	'TRLR'         : 'TRLR',
+	'APARTMENT'    		: 'APT',
+	'APPARTEMENT'		: 'APT', // french for apt
+  	'APP'          		: 'APT', // french for apt
+	'APT'          		: 'APT',
+	'BASEMENT'     		: 'BSMT',
+	'BAY'		   		: 'BAY',
+	'BSMT'         		: 'BSMT',
+	'BLDG'         		: 'BLDG',
+	'BUILDING'     		: 'BLDG',
+	'BUREAU'       		: 'BUR', //french for office
+	'BUR'       		: 'BUR', //french for office
+	'DEPARTMENT'   		: 'DEPT',
+	'DEPT'         		: 'DEPT',
+	'ETAGE'		    	: 'FL', //french for Floor
+	'ÉTAGE'		    	: 'FL',
+	'FL'           		: 'FL',
+	'FLOOR'        		: 'FL',
+	'FRNT'         		: 'FRNT',
+	'FRONT'        		: 'FRNT',
+	'HANGAR'       		: 'HNGR',
+	'HNGR'         		: 'HNGR',
+	'LBBY'         		: 'LBBY',
+	'LOBBY'        		: 'LBBY',
+	'LOCAL'        		: 'RM', // french for room
+	'LOT'          		: 'LOT',
+	'LOWER'        		: 'LOWR',
+	'LOWR'         		: 'LOWER',
+	'NUMERO'       		: 'NO',
+	'NO'           		: 'NO',
+	'OFC'          		: 'OFC',
+	'OFFICE'       		: 'OFC',
+	'PENTHOUSE'    		: 'PH',
+	'PH'           		: 'PH',
+	'PIER'         		: 'PIER',
+	'REAR'         		: 'REAR',
+	'RM'           		: 'RM',
+	'ROOM'         		: 'RM',
+	'SIDE'         		: 'SIDE',
+	'SLIP'         		: 'SLIP',
+	'SPACE'        		: 'SPC',
+	'SPC'          		: 'SPC',
+	'STE'          		: 'STE',
+	'STOP'         		: 'STOP',
+	'SUITE'        		: 'STE',
+	'TRAILER'      		: 'TRLR',
+	'TRLR'         		: 'TRLR',
 	'UNIT(e|é|ée|ee|)'  : 'UNIT', //unit, unite (french)
-	'UPPER'        : 'UPPR',
-	'UPPR'         : 'UPPR',
-	'#'			       : '#',
+	'UPPER'        		: 'UPPR',
+	'UPPR'         		: 'UPPR',
+	'#'			       	: '#',
 },
 
 entities={
@@ -150,8 +150,9 @@ entities={
 			return '';
 		if (!dat)
 		  return dat;
-		var f=entities.decode,
-			e=ENTITTIES.decode;
+		let 
+		f	= entities.decode,
+		e	= ENTITTIES.decode;
 		if(typeof dat==='string'){
 			try{
 				return e(e(dat));
@@ -744,20 +745,32 @@ addrsr={
 
 				// If there are only 2 street parts (number and name) then its likely missing a "real" suffix and the street name just happened to match a suffix
 				if (streetParts.length > 2) {
+
+					if(options.verbose) console.info('streetParts count >2',streetParts)
 					// Remove '.' if it follows streetSuffix
 					streetParts[streetParts.length - 1] = streetParts[streetParts.length - 1].replace(/\.$/, '');
 					result.streetSuffix = toTitleCase(usStreetTypes[streetParts[streetParts.length - 1].toLowerCase()]);
+					//streetParts.pop();
 				}
 				//was: "Assume street name is everything in the middle" but when you assume, you make an ass of u and me
 				// work fine except for something like: "1234 boul streetName W", that would give "boul"
 				let strnameindex=1;
-				if(Object.keys(usStreetTypes).indexOf(streetParts[1])!=-1){
+				if(options.verbose) console.info('streetParts against usStreetTypes',streetParts[1],Object.keys(usStreetTypes))
+				if(streetParts[2] && Object.keys(usStreetTypes).indexOf(streetParts[2].toLowerCase().replace(/\.$/, ''))!=-1){
+					strnameindex=1;
+					if(!result.streetSuffix) result.streetSuffix = toTitleCase(streetParts[2]);
+				}
+				else if(Object.keys(usStreetTypes).indexOf(streetParts[1].toLowerCase().replace(/\.$/, ''))!=-1){
 					strnameindex=2;
 					result.streetPrefix = toTitleCase(streetParts[1]);
 				}
 				result.streetName = streetParts[strnameindex]; // Assume street name is everything in the middle
 				for (var i = (strnameindex+1); i < streetParts.length - 1; i++) {
 					result.streetName = result.streetName + " " + streetParts[i];
+				}
+				if(result.streetPrefix && !result.streetName) {
+					result.streetName=''+result.streetPrefix;
+					result.streetPrefix='';
 				}
 				result.streetName = toTitleCase(result.streetName);
 				result.addressLine1 = [result.streetNumber,(result.streetPrefix || ''), result.streetName].filter(function(a){return a?true:false;}).join(" ").replace(/\s+/g,' ');
