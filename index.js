@@ -542,14 +542,14 @@ addrsr={
 						addressParts.push(stateString);
 						if(options.verbose) console.info('no state found, got from zip:',_s);
 						stateString=_s.code;
-						_doCheckState();
+						addrsr.searchState(stateString,result);
 					}
 				}
 				if (result.countryCode =='CA') {
 					stateString = canPostalCodeFirst[result.zipCode.substr(0, 1)];
 					addressParts.push(stateString);
 					if(options.verbose) console.info('no province found, got from postalCode:',stateString);
-					_doCheckState();
+					addrsr.searchState(stateString,result);
 				}
 			}
 			if(result.countryCode === 'CA'){
@@ -559,7 +559,7 @@ addrsr={
 					if (stateString.match(re)) {
 						//let city = stateString.replace(re, ""); // Carve off the place name
 						stateString='CA';
-						_doCheckState();
+						addrsr.searchState(stateString,result);
 						stateString=''+element;
 						result.countryCode='US';
 						result.country='United States';
