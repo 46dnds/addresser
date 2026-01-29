@@ -432,6 +432,25 @@ addrsr={
 			stripped	: out
 		};
 	},
+	searchState:function(stateString,result){
+		if (stateString.length == 2 && getKeyByValue(allStates, stateString.toUpperCase())) {
+			result.stateAbbreviation = stateString.toUpperCase();
+			result.stateName = toTitleCase(getKeyByValue(allStates, stateString.toUpperCase()));
+			stateString = stateString.substring(0, stateString.length - 2);
+		} else {
+			// Next check if the state string ends in state name or abbeviation
+			// (state abbreviation must be preceded by a space to ensure accuracy)
+			for (let key in allStates) {
+				var re = new RegExp(" " + allStates[key] + "$|" + key.replace(/\-/g,'(\\-|\\s)') + "$", "i");
+				if (stateString.match(re)) {
+					stateString = stateString.replace(re, "");
+					result.stateAbbreviation = allStates[key];
+					result.stateName = toTitleCase(key);
+					break;
+				}
+			}
+		}
+	},
 	parseAddress: function(input,options) {
 		if(!options) options={};
 		// Validate a non-empty string was passed
@@ -510,30 +529,11 @@ addrsr={
 			addressParts[addressParts.length - 1] = stateString.trim();
 		} else {
 			addressParts.splice(-1, 1);
-			stateString = addressParts[addressParts.length - 1].trim();
+			stateString = addressParts[addressParts.length - 1]?.trim();
 		}
 		if(options.verbose) console.info('stateString:',stateString);
 		// First check for just an Abbreviation
-		let _doCheckState=function(){
-			if (stateString.length == 2 && getKeyByValue(allStates, stateString.toUpperCase())) {
-				result.stateAbbreviation = stateString.toUpperCase();
-				result.stateName = toTitleCase(getKeyByValue(allStates, stateString.toUpperCase()));
-				stateString = stateString.substring(0, stateString.length - 2);
-			} else {
-				// Next check if the state string ends in state name or abbeviation
-				// (state abbreviation must be preceded by a space to ensure accuracy)
-				for (let key in allStates) {
-					var re = new RegExp(" " + allStates[key] + "$|" + key.replace(/\-/g,'(\\-|\\s)') + "$", "i");
-					if (stateString.match(re)) {
-						stateString = stateString.replace(re, "");
-						result.stateAbbreviation = allStates[key];
-						result.stateName = toTitleCase(key);
-						break;
-					}
-				}
-			}
-		}
-		_doCheckState();
+		addrsr.searchState(stateString,result);
 		if(!result.stateAbbreviation || result.stateAbbreviation.length != 2){
 			if(result.zipCode){
 				if(result.countryCode == 'US'){
