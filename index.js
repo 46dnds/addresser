@@ -4,12 +4,15 @@ var args={};
 if(process.argv && process.argv[1].indexOf('index.js')!=-1){
 	if(process.argv.length>2){
 		for(var i=2;i<process.argv.length;i++){
-			if(process.argv[i].indexOf('=')!=-1){
-				var s=process.argv[i].split('=');
-				args[s[0]]=s[1];
+			let _pn=process.argv[i].replace(/^\-\-/,'');
+			if(_pn.indexOf('=')!=-1){
+				var s=_pn.split('=');
+				let _m=s.shift(),
+				_d=s.join('=');
+				args[_m]=_d.indexOf('b64:')===0?JSON.parse(Buffer.from(_d.replace('b64:',''),'base64').toString()):_d;
 			}
 			else
-				args[process.argv[i]]=true;
+				args[_pn]=true;
 		}
 	}
 }
@@ -210,6 +213,13 @@ var usStreetDirectionalString = Object.keys(usStreetDirectional).map(x => usStre
 var usLine2String = Object.keys(usLine2Prefixes).join('|');
 var
 addrsr={
+	data:{
+		usLine2Prefixes,
+		usStreetDirectional,
+		usStreetDirectionalString,
+		usLine2String,
+		usStreetTypes
+	},
   cleanString:function(input){ // a lazy and overkill way to clean a string... because we can't control 100% of the user input.
     if(!input || typeof input=='boolean') return input;
     if(typeof input=='object'){
@@ -332,19 +342,29 @@ addrsr={
 		return null;
   },
   getStateFromZip:function(zip){
-    var zip=parseInt(zip);
+	if(!zip) return null;
+    var _zip=parseInt(zip);
     var s=Object.keys(usZipCodesByState);
-    for(let i=0;i<s.length;i++){
-      let _s=usZipCodesByState[s[i]];
-      for(let x=0;x<_s.codes.length;x++){
-        if(zip>=_s.codes[x][0] && zip>=_s.codes[x][1]){
+    for(let i of s){
+      let _s=usZipCodesByState[i];
+      for(let x of _s.codes){
+        if(_zip>=x[0] && _zip<=x[1]){
           return {
-            code  : s[i],
-            name  : _s.name
+            code  : i,
+            name  : _s.name,
+			country:'US'
           };
         }
       }
     }
+	let Can=canPostalCodeFirst[zip.charAt(0)];
+	if(Can){
+		return {
+			code:Can,
+			name:Object.keys(caStates).filter((a)=>caStates[a]==Can)?.[0],
+			country:'CA'
+		}
+	}
     return null;
   },
 	/**
@@ -450,6 +470,7 @@ addrsr={
 				}
 			}
 		}
+		return stateString;
 	},
 	parseAddress: function(input,options) {
 		if(!options) options={};
@@ -533,24 +554,25 @@ addrsr={
 		}
 		if(options.verbose) console.info('stateString:',stateString);
 		// First check for just an Abbreviation
-		addrsr.searchState(stateString,result);
+		stateString=addrsr.searchState(stateString,result);
 		if(!result.stateAbbreviation || result.stateAbbreviation.length != 2){
 			if(result.zipCode){
-				if(result.countryCode == 'US'){
+				//if(result.countryCode == 'US'){
 					let _s=addrsr.getStateFromZip(result.zipCode);
 					if(_s && _s.code){
 						addressParts.push(stateString);
 						if(options.verbose) console.info('no state found, got from zip:',_s);
 						stateString=_s.code;
-						addrsr.searchState(stateString,result);
+						if(!result.countryCode && _s.country) result.countryCode=''+_s.country;
+						stateString=addrsr.searchState(stateString,result);
 					}
-				}
-				if (result.countryCode =='CA') {
-					stateString = canPostalCodeFirst[result.zipCode.substr(0, 1)];
-					addressParts.push(stateString);
-					if(options.verbose) console.info('no province found, got from postalCode:',stateString);
-					addrsr.searchState(stateString,result);
-				}
+				//}
+				//if (result.countryCode =='CA') {
+				//	stateString = canPostalCodeFirst[result.zipCode.substr(0, 1)];
+				//	addressParts.push(stateString);
+				//	if(options.verbose) console.info('no province found, got from postalCode:',stateString);
+				//	addrsr.searchState(stateString,result);
+				//}
 			}
 			if(result.countryCode === 'CA'){
 				//CA may be California, not Canada?
@@ -559,7 +581,7 @@ addrsr={
 					if (stateString.match(re)) {
 						//let city = stateString.replace(re, ""); // Carve off the place name
 						stateString='CA';
-						addrsr.searchState(stateString,result);
+						stateString=addrsr.searchState(stateString,result);
 						stateString=''+element;
 						result.countryCode='US';
 						result.country='United States';
